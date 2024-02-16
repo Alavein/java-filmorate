@@ -14,6 +14,8 @@ import java.util.*;
 @RequestMapping("/films")
 public class FilmController {
 
+    private static final LocalDate BEGINNING_OF_CINEMA_HISTORY = LocalDate.of(1895, 12, 28);
+    private static final int MIN_DURATION = 1;
     private final Map<Integer, Film> films = new HashMap<>();
     private int generatorFilmId = 0;
 
@@ -28,9 +30,9 @@ public class FilmController {
     }
 
     @GetMapping
-    public Collection<Film> getAllFilms() {
+    public List<Film> getAllFilms() {
         log.info("Список фильмов");
-        return films.values();
+        return (List<Film>) films.values();
     }
 
     @PutMapping
@@ -50,7 +52,7 @@ public class FilmController {
 
     private void filmValidation(Film film) {
         if (film.getReleaseDate() == null ||
-                film.getReleaseDate().isBefore(LocalDate.of(1895, 12, 28))) {
+                film.getReleaseDate().isBefore(BEGINNING_OF_CINEMA_HISTORY)) {
             log.warn("Ошибка. Некорректная дата релиза фильма.");
             throw new ValidationException("Ошибка. Некорректная дата релиза фильма.");
         }
@@ -58,7 +60,7 @@ public class FilmController {
             log.warn("Ошибка. Название фильма не указано.");
             throw new ValidationException("Ошибка. Название фильма не указано.");
         }
-        if (film.getDuration() <= 0) {
+        if (film.getDuration() <= MIN_DURATION) {
             log.warn("Ошибка. Продолжительность фильма должна быть положительной (более 1 секунды).");
             throw new ValidationException("Ошибка. Продолжительность фильма должна быть положительной " +
                     "(более 1 секунды).");

@@ -1,6 +1,7 @@
 package ru.yandex.practicum.filmorate.controller;
 
 import org.springframework.web.bind.annotation.*;
+import ru.yandex.practicum.filmorate.exceptions.DataNotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 
@@ -43,7 +44,7 @@ public class UserController {
         Integer id = user.getId();
         if (!users.containsKey(id)) {
             log.info("Ошибка. Пользователь не найден: {}", user);
-            throw new ValidationException("Ошибка. Пользователь не найден");
+            throw new DataNotFoundException("Ошибка. Пользователь не найден");
         }
         users.put(id, user);
         log.info("Данные о пользователе успешно обновлены: {}", user);
