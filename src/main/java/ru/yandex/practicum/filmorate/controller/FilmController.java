@@ -30,9 +30,9 @@ public class FilmController {
     }
 
     @GetMapping
-    public List<Film> getAllFilms() {
+    public Collection<Film> getAllFilms() {
         log.info("Список фильмов");
-        return (List<Film>) films.values();
+        return films.values();
     }
 
     @PutMapping
