@@ -12,16 +12,19 @@ import javax.validation.constraints.Size;
 import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.Set;
+
 /**
  * Film.
  */
+
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+
 public class Film {
 
-   private Integer id;
+    private Integer id;
     @NotBlank(message = "Ошибка. Название фильма не указано.")
     private String name;
     @NotNull
@@ -32,6 +35,4 @@ public class Film {
     @Positive(message = "Ошибка. Продолжительность фильма должна быть положительной (более 1 секунды).")
     private Integer duration;
     private Set<Integer> usersLikes = new HashSet<>();
-
-
 }
