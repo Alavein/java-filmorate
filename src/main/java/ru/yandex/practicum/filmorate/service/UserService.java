@@ -11,6 +11,7 @@ import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -52,19 +53,18 @@ public class UserService {
         return Arrays.asList(firstUser, secondUser);
     }
 
-    public List<User> removeFriend(int firstId, int secondId) {
-        User firstUser = userStorage.getUserById(firstId);
-        User secondUser = userStorage.getUserById(secondId);
+    public void removeFriend(int userId, int friendId) {
+        User user = userStorage.getUserById(userId);
+        User secondUser = userStorage.getUserById(friendId);
+        Set<Integer> userFriends = user.getFriends();
+        Set<Integer> friendsOfAFriend = secondUser.getFriends();
 
-        if (!firstUser.getFriends().contains(secondId)) {
-            throw new ValidationException("Ошибка. Пользователи не являются друзьями");
-        }
-        firstUser.getFriends().remove(secondId);
-        secondUser.getFriends().remove(firstId);
+        userFriends.remove(friendId);
+        friendsOfAFriend.remove(userId);
+
         log.info("Пользователи: '{}' и '{}' больше не друзья",
-                firstUser.getName(),
+                user.getName(),
                 secondUser.getName());
-        return Arrays.asList(firstUser, secondUser);
     }
 
     public List<User> getFriendsListById(int id) {
