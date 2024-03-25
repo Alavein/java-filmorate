@@ -29,9 +29,9 @@ public class FilmService {
         return filmStorage.updateFilm(film);
     }
 
-    public Collection<Film> getAllFilms() {
+    public List<Film> getAllFilms() {
         log.info("Список фильмов.");
-        return filmStorage.getAllFilms();
+        return (List<Film>) filmStorage.getAllFilms();
     }
 
     public Film getFilmById(int id) {
