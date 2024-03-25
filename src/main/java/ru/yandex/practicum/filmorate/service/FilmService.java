@@ -8,6 +8,7 @@ import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -21,19 +22,22 @@ public class FilmService {
 
 
     public Film createFilm(Film film) {
+        log.info("Создание фильма.");
         return filmStorage.createFilm(film);
     }
 
     public Film updateFilm(Film film) {
+        log.info("Обновление данных о фильме.");
         return filmStorage.updateFilm(film);
     }
 
-    public List<Film> getAllFilms() {
+    public Collection<Film> getAllFilms() {
         log.info("Список фильмов.");
-        return (List<Film>) filmStorage.getAllFilms();
+        return filmStorage.getAllFilms();
     }
 
     public Film getFilmById(int id) {
+        log.info("Вывод фильма по его id.");
         return filmStorage.getFilmById(id);
     }
 
