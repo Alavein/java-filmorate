@@ -1,84 +1,97 @@
 package ru.yandex.practicum.filmorate.storage.film;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
+import org.springframework.web.server.ResponseStatusException;
 import ru.yandex.practicum.filmorate.exceptions.DataNotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 
-import java.time.LocalDate;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
-@Component
 @Slf4j
+@Component
+@Qualifier("inMemoryFilmStorage")
+@RequiredArgsConstructor
 public class InMemoryFilmStorage implements FilmStorage {
 
-    private final Map<Integer, Film> films = new HashMap<>();
-    private int generatorFilmId = 0;
-
-    private void filmValidation(Film film) {
-        if (film.getReleaseDate() == null ||
-                film.getReleaseDate().isBefore(LocalDate.of(1895, 12, 28))) {
-            log.warn("Ошибка. Некорректная дата релиза фильма.");
-            throw new ValidationException("Ошибка. Некорректная дата релиза фильма.");
-        }
-        if (film.getName() == null || film.getName().isBlank()) {
-            log.warn("Ошибка. Название фильма не указано.");
-            throw new ValidationException("Ошибка. Название фильма не указано.");
-        }
-        if (film.getDuration() <= 0) {
-            log.warn("Ошибка. Продолжительность фильма должна быть положительной (более 1 секунды).");
-            throw new ValidationException("Ошибка. Продолжительность фильма должна быть положительной " +
-                    "(более 1 секунды).");
-        }
-        if (film.getDescription() == null || film.getDescription().isBlank() || film.getDescription().length() > 200) {
-            log.warn("Ошибка. Описание фильма должно быть меньше 200 символов.");
-            throw new ValidationException("Ошибка. Описание фильма должно быть меньше 200 символов.");
-        }
-    }
+    private final List<Film> films = new ArrayList<>();
+    private Long generatedId = 0L;
 
     @Override
     public Film createFilm(Film film) {
-        filmValidation(film);
-        log.info("Добавляем фильм: {}", film);
-        film.setId(generateFilmId());
-        films.put(film.getId(), film);
-        log.info("Фильм успешно добавлен: {}", film);
+        film.setId(generateIdFilm());
+        films.add(film);
         return film;
     }
 
     @Override
     public Film updateFilm(Film film) {
-        filmValidation(film);
-        log.info("Обновляем данные фильма: {}", film);
-        Integer id = film.getId();
-        if (!films.containsKey(id)) {
-            log.info("Ошибка. Фильм не найден: {}", film);
-            throw new DataNotFoundException("Ошибка. Фильм не найден");
+        try {
+            for (Film f : films) {
+                if (Objects.equals(f.getId(), film.getId())) {
+                    break;
+                } else {
+                    throw new ValidationException("Ошибка. Фильм не найден.");
+                }
+            }
+            films.removeIf(f -> Objects.equals(f.getId(), film.getId()));
+            films.add(film);
+        } catch (ValidationException exception) {
+            log.info(exception.getMessage());
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, exception.getMessage());
         }
-        films.put(id, film);
-        log.info("Данные о фильме успешно обновлены: {}", film);
         return film;
     }
 
     @Override
-    public Collection<Film> getAllFilms() {
-        return films.values();
+    public List<Film> getAllFilms() {
+        return films;
     }
 
     @Override
-    public Film getFilmById(int id) {
-        Film film = films.get(id);
-        if (film == null) {
+    public Film getFilmById(Long id) {
+        Optional<Film> optionalFilm = films.stream()
+                .filter(film -> Objects.equals(film.getId(), id))
+                .findFirst();
+        if (optionalFilm.isPresent()) {
+            return optionalFilm.get();
+        } else {
             throw new DataNotFoundException("Ошибка. Фильм не найден.");
         }
-        log.info("Фильм с id:" + id + "успешно найден.");
-        return film;
     }
 
-    private int generateFilmId() {
-        return ++generatorFilmId;
+    @Override
+    public void addFilmLike(Long id, Long userId) {
+        if (userId <= 0) {
+            throw new DataNotFoundException("Ошибка. Пользователь не найден.");
+        } else {
+            getFilmById(id).setLikeFilm(userId);
+        }
+    }
+
+    @Override
+    public void removeFilmLike(Long id, Long userId) {
+        if (userId <= 0) {
+            throw new DataNotFoundException("Ошибка. Пользователь не найден.");
+        } else {
+            getFilmById(id).getUsersLikes().remove(userId);
+        }
+    }
+
+    @Override
+    public List<Film> getPopular(Long count) {
+        return films.stream()
+                .sorted((film1, film2) -> film2.getUsersLikes().size() - film1.getUsersLikes().size())
+                .limit(count)
+                .collect(Collectors.toList());
+    }
+
+    private Long generateIdFilm() {
+        return ++generatedId;
     }
 }
