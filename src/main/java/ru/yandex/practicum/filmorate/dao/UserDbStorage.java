@@ -19,6 +19,8 @@ import java.sql.SQLException;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static org.springframework.util.ObjectUtils.isEmpty;
+
 @Slf4j
 @Component
 @Qualifier("userDbStorage")
@@ -46,7 +48,7 @@ public class UserDbStorage implements UserStorage {
                 .usingGeneratedKeyColumns("id");
         Long id = insert.executeAndReturnKey(user.userToMap(user)).longValue();
         user.setId(id);
-        if (!user.getFriends().isEmpty()) {
+        if (!isEmpty(user.getFriends())) {
             for (long idf : user.getFriends()) {
                 jdbcTemplate.update("INSERT INTO friendship (id_users, id_friends) VALUES (?, ?)",
                         id, idf);
@@ -105,10 +107,12 @@ public class UserDbStorage implements UserStorage {
                 .name(rs.getString("name"))
                 .birthday(rs.getDate("birthday").toLocalDate())
                 .build();
-        user.getFriends().addAll(jdbcTemplate.query("SELECT id_friends FROM friendship WHERE id_users = ?",
-                (rs1, rowNum1) -> rs1.getLong("id_friends"),
-                user.getId())
-        );
+        if (!isEmpty(user.getFriends())) {
+            user.getFriends().addAll(jdbcTemplate.query("SELECT id_friends FROM friendship WHERE id_users = ?",
+                    (rs1, rowNum1) -> rs1.getLong("id_friends"),
+                    user.getId())
+            );
+        }
         return user;
     }
 
