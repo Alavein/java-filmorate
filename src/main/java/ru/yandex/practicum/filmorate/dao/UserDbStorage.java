@@ -1,8 +1,7 @@
 package ru.yandex.practicum.filmorate.dao;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
@@ -23,14 +22,10 @@ import static org.springframework.util.ObjectUtils.isEmpty;
 
 @Slf4j
 @Component
-@Qualifier("userDbStorage")
+@RequiredArgsConstructor
 public class UserDbStorage implements UserStorage {
-    private final JdbcTemplate jdbcTemplate;
 
-    @Autowired
-    public UserDbStorage(JdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
-    }
+    private final JdbcTemplate jdbcTemplate;
 
     private boolean checkUser(Long userId) {
         try {
@@ -50,8 +45,7 @@ public class UserDbStorage implements UserStorage {
         user.setId(id);
         if (!isEmpty(user.getFriends())) {
             for (long idf : user.getFriends()) {
-                jdbcTemplate.update("INSERT INTO friendship (id_users, id_friends) VALUES (?, ?)",
-                        id, idf);
+                jdbcTemplate.update("INSERT INTO friendship (id_users, id_friends) VALUES (?, ?)", id, idf);
             }
         }
         return user;
@@ -60,7 +54,7 @@ public class UserDbStorage implements UserStorage {
     @Override
     public void updateUser(User user) {
         if (checkUser(user.getId())) {
-            log.info("Ошибка. Пользователь с id " + user.getId() + " не найден.");
+            log.info("Ошибка updateUser. Пользователь с id " + user.getId() + " не найден.");
             throw new DataNotFoundException("Ошибка. Пользователь с id " + user.getId() + " не найден.");
         }
 
@@ -79,9 +73,12 @@ public class UserDbStorage implements UserStorage {
         );
         jdbcTemplate.update("DELETE FROM friendship WHERE id_users = ?", user.getId());
 
-        if (user.getFriends() != null && user.getFriends().size() != 0) {
-            user.getFriends().forEach(id -> jdbcTemplate.update("INSERT INTO friendship (id_users, id_friends)" +
-                    " VALUES (?, ?)", user.getId(), id));
+        if (!isEmpty(user.getFriends())) {
+            user.getFriends().forEach(id -> {
+                        jdbcTemplate.update("INSERT INTO friendship (id_users, id_friends) VALUES (?, ?)",
+                                user.getId(), id);
+                    }
+            );
         }
     }
 
@@ -109,8 +106,7 @@ public class UserDbStorage implements UserStorage {
                 .build();
         if (!isEmpty(user.getFriends())) {
             user.getFriends().addAll(jdbcTemplate.query("SELECT id_friends FROM friendship WHERE id_users = ?",
-                    (rs1, rowNum1) -> rs1.getLong("id_friends"),
-                    user.getId())
+                    (rs1, rowNum1) -> rs1.getLong("id_friends"), user.getId())
             );
         }
         return user;
@@ -119,22 +115,23 @@ public class UserDbStorage implements UserStorage {
     @Override
     public User addFriend(Long id, Long friendId) {
         if (checkUser(id)) {
-            log.info("Ошибка. Пользователь с id " + id + " не найден.");
+            log.info("Ошибка addFriend. Пользователь с id " + id + " не найден.");
             throw new DataNotFoundException("Ошибка. Пользователь с id " + id + " не найден.");
         }
         if (checkUser(friendId)) {
-            log.info("Ошибка. Пользователь с id " + friendId + " не найден.");
+            log.info("Ошибка addFriend. Пользователь с id " + friendId + " не найден.");
             throw new DataNotFoundException("Ошибка. Пользователь с id " + friendId + " не найден.");
         }
         if (Objects.equals(id, friendId)) {
-            log.info("Ошибка. Нельзя стать своим же другом. По крайней мере, в программе.");
+            log.info("Ошибка addFriend. Нельзя стать своим же другом. По крайней мере, в программе.");
             throw new ValidationException("Ошибка. Нельзя стать своим же другом.");
         }
         String sql = "INSERT INTO friendship (id_users, id_friends) VALUES (?, ?)";
         try {
             jdbcTemplate.update(sql, id, friendId);
+            getUserById(id).setFriendUser(friendId);
         } catch (DuplicateKeyException e) {
-            log.info("Ошибка. Второй раз добавить друга нельзя.");
+            log.info("Ошибка addFriend. Второй раз добавить друга нельзя.");
             throw new ValidationException("Ошибка. Второй раз добавить друга нельзя.");
         }
         return getUserById(id);
@@ -143,24 +140,23 @@ public class UserDbStorage implements UserStorage {
     @Override
     public void removeFriend(Long id, Long friendId) {
         if (checkUser(id)) {
-            log.info("Ошибка. Пользователь с id " + id + " не найден.");
+            log.info("Ошибка removeFriend. Пользователь с id " + id + " не найден.");
             throw new DataNotFoundException("Ошибка. Пользователь с id " + id + " не найден.");
         }
         if (checkUser(friendId)) {
-            log.info("Ошибка. Пользователь с id " + friendId + " не найден.");
+            log.info("Ошибка removeFriend. Пользователь с id " + friendId + " не найден.");
             throw new DataNotFoundException("Ошибка. Пользователь с id " + friendId + " не найден.");
         }
-        if (jdbcTemplate.update("DELETE FROM friendship" +
-                " WHERE id_users = ? AND id_friends = ?", id, friendId) == 0) {
-            log.info("Ошибка. Пользователи не являются друзьями.");
-            throw new DataNotFoundException("Ошибка. Пользователи не являются друзьями.");
+        if ((jdbcTemplate.update("DELETE FROM friendship WHERE id_users = ? AND id_friends = ?", id, friendId) == 0)
+                || (jdbcTemplate.update("DELETE FROM friendship WHERE id_users = ? AND id_friends = ?", friendId, id) == 0)) {
+            log.info("Ошибка removeFriend. Пользователи не являются друзьями.");
         }
     }
 
     @Override
     public List<User> getFriendsList(Long id) {
         if (checkUser(id)) {
-            log.info("Ошибка. Пользователь с id " + id + " не найден.");
+            log.info("Ошибка getFriendsList. Пользователь с id " + id + " не найден.");
             throw new DataNotFoundException("Ошибка. Пользователь с id " + id + " не найден.");
         }
         String sql = "SELECT id_friends FROM friendship WHERE id_users = ?";

@@ -27,4 +27,5 @@ public class MpaController {
     public List<Mpa> getMpaList() {
         return  mpaService.getMpaList();
     }
+
 }

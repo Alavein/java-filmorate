@@ -1,7 +1,7 @@
 package ru.yandex.practicum.filmorate.dao;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -16,13 +16,10 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class GenreDbStorage {
-    private final JdbcTemplate jdbcTemplate;
 
-    @Autowired
-    public GenreDbStorage(JdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
-    }
+    private final JdbcTemplate jdbcTemplate;
 
     private Genre buildGenre(ResultSet rs, int rowNum) throws SQLException {
         return Genre.builder()
@@ -43,7 +40,8 @@ public class GenreDbStorage {
     }
 
     public List<Genre> getGenreList() {
-        return jdbcTemplate.query("SELECT * FROM genre", this::buildGenre).stream()
+        return jdbcTemplate.query("SELECT * FROM genre", this::buildGenre)
+                .stream()
                 .sorted(Comparator.comparingLong(Genre::getId))
                 .collect(Collectors.toList());
     }

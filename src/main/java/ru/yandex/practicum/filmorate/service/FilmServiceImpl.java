@@ -20,7 +20,6 @@ public class FilmServiceImpl implements FilmService {
         this.filmStorage = filmStorage;
     }
 
-
     private void filmValidation(Film film) {
         if (film.getReleaseDate() == null ||
                 film.getReleaseDate().isBefore(LocalDate.of(1895, 12, 28))) {

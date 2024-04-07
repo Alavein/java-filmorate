@@ -21,12 +21,17 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static org.springframework.util.ObjectUtils.isEmpty;
+
 @Slf4j
 @Component
 @Qualifier("filmDbStorage")
 @RequiredArgsConstructor
 public class FilmDbStorage implements FilmStorage {
+
     private final JdbcTemplate jdbcTemplate;
+    private final MpaDbStorage mpaDbStorage;
+    private final GenreDbStorage genreDbStorage;
 
     private boolean checkFilm(Long filmId) {
         try {
@@ -40,18 +45,28 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public Film createFilm(Film film) {
+        validate(film);
         SimpleJdbcInsert insert = new SimpleJdbcInsert(jdbcTemplate)
                 .withTableName("films")
                 .usingGeneratedKeyColumns("id");
         Long id = insert.executeAndReturnKey(film.filmToMap(film)).longValue();
         film.setId(id);
-        if (film.getGenres().isEmpty()) {
+        if (!isEmpty(film.getGenres())) {
             for (Genre g : film.getGenres()) {
-                jdbcTemplate.update("INSERT INTO genres_films (id_films, id_genres) " +
-                        "VALUES (?, ?)", id, g.getId());
+                jdbcTemplate.update("INSERT INTO genres_films (id_films, id_genres) "
+                        + "VALUES (?, ?)", id, g.getId());
             }
         }
         return film;
+    }
+
+    private void validate(Film film) {
+        try {
+            mpaDbStorage.getMpa(film.getMpa().getId());
+            film.getGenres().stream().forEach(genre -> genreDbStorage.getGenre(genre.getId()));
+        } catch (DataNotFoundException e) {
+            throw new ValidationException("Фильм не прошел валидацию");
+        }
     }
 
     @Override
@@ -61,9 +76,9 @@ public class FilmDbStorage implements FilmStorage {
             throw new DataNotFoundException("Ошибка. Фильм с id = " + film.getId() + "не найден.");
         }
         jdbcTemplate.update("DELETE FROM genres_films WHERE id_films = ?", film.getId());
-        if (film.getGenres() != null && film.getGenres().size() != 0) {
-            film.getGenres().forEach(genre -> jdbcTemplate.update("INSERT INTO genres_films (id_films, id_genres)" +
-                    " VALUES (?, ?)", film.getId(), genre.getId()));
+        if (!isEmpty(film.getGenres())) {
+            film.getGenres().forEach(genre -> jdbcTemplate.update("INSERT INTO genres_films (id_films, id_genres)"
+                    + " VALUES (?, ?)", film.getId(), genre.getId()));
         }
         return film;
     }
@@ -92,8 +107,7 @@ public class FilmDbStorage implements FilmStorage {
             throw new DataNotFoundException("Ошибка. Фильм с id = " + id + "не найден.");
         }
         try {
-            jdbcTemplate.update("INSERT INTO films_users_relationship (id_users, id_films)" +
-                            " VALUES (?, ?)",
+            jdbcTemplate.update("INSERT INTO films_users_relationship (id_users, id_films) VALUES (?, ?)",
                     userId, id
             );
         } catch (DuplicateKeyException e) {
@@ -108,7 +122,7 @@ public class FilmDbStorage implements FilmStorage {
             log.info("Ошибка. Фильм с id " + id + " не найден. ");
             throw new DataNotFoundException("Ошибка. Фильм с id " + id + " не найден. ");
         }
-        String sql = "DELETE FROM films_users_relationship WHERE id_users = ? AND id_films + ?";
+        String sql = "DELETE FROM films_users_relationship WHERE id_users = ? AND id_films = ?";
         if (jdbcTemplate.update(sql, userId, id) == 0) {
             log.info("Ошибка. У фильма нет лайков.");
             throw new DataNotFoundException("Ошибка. У фильма нет лайков.");
@@ -132,8 +146,8 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     private Set<Genre> getGenresById(Long id) {
-        String sqlStr = "SELECT g.id, g.genre_name FROM genres_films AS gf " +
-                "JOIN genre AS g ON gf.id_genres=g.id WHERE gf.id_films = ?";
+        String sqlStr = "SELECT g.id, g.genre_name FROM genres_films AS gf "
+                + "JOIN genre AS g ON gf.id_genres=g.id WHERE gf.id_films = ?";
         return new HashSet<>(jdbcTemplate.query(sqlStr, this::buildGenre, id));
     }
 

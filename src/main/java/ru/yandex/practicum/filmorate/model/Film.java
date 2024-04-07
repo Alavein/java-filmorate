@@ -17,7 +17,6 @@ import java.util.Set;
 
 @Data
 @Builder
-
 public class Film {
 
     private Long id;
@@ -30,13 +29,9 @@ public class Film {
     private LocalDate releaseDate;
     @Positive(message = "Ошибка. Продолжительность фильма должна быть положительной (более 1 секунды).")
     private Integer duration;
-    private Set<Long> usersLikes = new HashSet<>();
+    private final Set<Long> usersLikes = new HashSet<>();
     private Mpa mpa;
-    private Set<Genre> genres = new HashSet<>();
-
-    public void setLikeFilm(Long userId) {
-        usersLikes.add(userId);
-    }
+    private final Set<Genre> genres = new HashSet<>();
 
     public Set<Long> getUsersLikes() {
         return usersLikes;

@@ -25,7 +25,7 @@ public class User {
     @NotNull
     @PastOrPresent(message = "Ошибка. Некорректно указана дата рождения.")
     private LocalDate birthday;
-    private Set<Long> friends = new HashSet<>();
+    private final Set<Long> friends = new HashSet<>();
 
     public void setFriendUser(Long friendId) {
         friends.add(friendId);
