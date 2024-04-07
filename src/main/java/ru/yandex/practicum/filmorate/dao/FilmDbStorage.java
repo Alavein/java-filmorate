@@ -63,7 +63,6 @@ public class FilmDbStorage implements FilmStorage {
     private void validate(Film film) {
         try {
             mpaDbStorage.getMpa(film.getMpa().getId());
-            film.getGenres().stream().forEach(genre -> genreDbStorage.getGenre(genre.getId()));
         } catch (DataNotFoundException e) {
             throw new ValidationException("Фильм не прошел валидацию");
         }
