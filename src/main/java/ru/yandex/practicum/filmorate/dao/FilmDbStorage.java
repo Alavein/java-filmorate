@@ -53,6 +53,7 @@ public class FilmDbStorage implements FilmStorage {
         film.setId(id);
         if (!isEmpty(film.getGenres())) {
             for (Genre g : film.getGenres()) {
+                genreDbStorage.getGenre(g.getId());
                 jdbcTemplate.update("INSERT INTO genres_films (id_films, id_genres) "
                         + "VALUES (?, ?)", id, g.getId());
             }
