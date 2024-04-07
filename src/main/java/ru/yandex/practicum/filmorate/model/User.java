@@ -5,9 +5,9 @@ import lombok.Data;
 
 import javax.validation.constraints.*;
 import java.time.LocalDate;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 
 @Data
@@ -25,7 +25,7 @@ public class User {
     @NotNull
     @PastOrPresent(message = "Ошибка. Некорректно указана дата рождения.")
     private LocalDate birthday;
-    private final Set<Long> friends = new HashSet<>();
+    private final Set<Long> friends = new TreeSet<>();
 
     public void setFriendUser(Long friendId) {
         friends.add(friendId);

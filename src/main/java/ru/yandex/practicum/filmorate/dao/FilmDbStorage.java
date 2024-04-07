@@ -19,6 +19,7 @@ import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import static org.springframework.util.ObjectUtils.isEmpty;
@@ -72,8 +73,8 @@ public class FilmDbStorage implements FilmStorage {
     @Override
     public Film updateFilm(Film film) {
         if (checkFilm(film.getId())) {
-            log.info("Ошибка. Фильм с id = " + film.getId() + "не найден.");
-            throw new DataNotFoundException("Ошибка. Фильм с id = " + film.getId() + "не найден.");
+            log.info("Ошибка. Фильм с id = " + film.getId() + " не найден.");
+            throw new DataNotFoundException("Ошибка. Фильм с id = " + film.getId() + " не найден.");
         }
         jdbcTemplate.update("DELETE FROM genres_films WHERE id_films = ?", film.getId());
         if (!isEmpty(film.getGenres())) {
@@ -96,7 +97,7 @@ public class FilmDbStorage implements FilmStorage {
             throw new DataNotFoundException("Ошибка. Фильм с id = " + id + "не найден.");
         }
         String sql = "SELECT f.*, mpa.name_mpa FROM films AS f " +
-                "JOIN mpa ON f.id_mpa=mpa.id_mpa WHERE id = ?";
+                "JOIN mpa ON f.id_mpa = mpa.id_mpa WHERE id = ?";
         return jdbcTemplate.queryForObject(sql, this::buildFilm, id);
     }
 
@@ -147,8 +148,8 @@ public class FilmDbStorage implements FilmStorage {
 
     private Set<Genre> getGenresById(Long id) {
         String sqlStr = "SELECT g.id, g.genre_name FROM genres_films AS gf "
-                + "JOIN genre AS g ON gf.id_genres=g.id WHERE gf.id_films = ?";
-        return new HashSet<>(jdbcTemplate.query(sqlStr, this::buildGenre, id));
+                + "JOIN genre AS g ON gf.id_genres = g.id WHERE gf.id_films = ?";
+        return new TreeSet<>(jdbcTemplate.query(sqlStr, this::buildGenre, id));
     }
 
     private Film buildFilm(ResultSet rs, int rowNum) throws SQLException {
@@ -166,7 +167,7 @@ public class FilmDbStorage implements FilmStorage {
                 (rs1, rowNum1) -> rs1.getLong("id_users"),
                 film.getId()
         ));
-        film.getGenres().addAll(getGenresById(film.getId()));
+        film.setGenres(getGenresById(film.getId()));
         return film;
     }
 }
