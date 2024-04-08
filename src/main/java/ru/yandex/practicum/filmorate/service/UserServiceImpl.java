@@ -1,22 +1,24 @@
-package ru.yandex.practicum.filmorate.storage.user;
+package ru.yandex.practicum.filmorate.service;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
-import ru.yandex.practicum.filmorate.exceptions.DataNotFoundException;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.time.LocalDate;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 
-@Component
 @Slf4j
-public class InMemoryUserStorage implements UserStorage {
+@Service
+public class UserServiceImpl implements UserService {
 
-    private final Map<Integer, User> users = new HashMap<>();
-    private int generatorUserId = 0;
+    private final UserStorage userStorage;
+
+    public UserServiceImpl(@Qualifier("userDbStorage") UserStorage userStorage) {
+        this.userStorage = userStorage;
+    }
 
     private void userValidation(User user) {
         if (user.getName() == null || user.getName().isBlank()) {
@@ -43,44 +45,43 @@ public class InMemoryUserStorage implements UserStorage {
     @Override
     public User createUser(User user) {
         userValidation(user);
-        log.info("Добавляем пользователя: {}", user);
-        user.setId(generateUserId());
-        users.put(user.getId(), user);
-        log.info("Пользователь успешно добавлен: {}", user);
-        return user;
+        return userStorage.createUser(user);
     }
 
     @Override
     public User updateUser(User user) {
         userValidation(user);
-        log.info("Обновляем данные пользователя: {}", user);
-        Integer id = user.getId();
-        if (!users.containsKey(id)) {
-            log.info("Ошибка. Пользователь не найден: {}", user);
-            throw new DataNotFoundException("Ошибка. Пользователь не найден");
-        }
-        users.put(id, user);
-        log.info("Данные о пользователе успешно обновлены: {}", user);
+        userStorage.updateUser(user);
         return user;
     }
 
     @Override
-    public Collection<User> getAllUsers() {
-        log.info("Список пользователей.");
-        return users.values();
+    public List<User> getAllUsers() {
+        return userStorage.getAllUsers();
     }
 
     @Override
-    public User getUserById(int id) {
-        User user = users.get(id);
-        if (user == null) {
-            throw new DataNotFoundException("Ошибка. Пользователь не найден.");
-        }
-        log.info("Данные о пользователе с id: '{}' успешно найдены", id);
-        return user;
+    public User getUserById(Long id) {
+        return userStorage.getUserById(id);
     }
 
-    private int generateUserId() {
-        return ++generatorUserId;
+    @Override
+    public User addFriend(Long id, Long friendId) {
+        return userStorage.addFriend(id, friendId);
+    }
+
+    @Override
+    public void removeFriend(Long id, Long friendId) {
+        userStorage.removeFriend(id, friendId);
+    }
+
+    @Override
+    public List<User> getFriendsList(Long id) {
+        return userStorage.getFriendsList(id);
+    }
+
+    @Override
+    public List<User> getCommonFriends(Long id, Long otherId) throws ValidationException {
+        return userStorage.getCommonFriends(id, otherId);
     }
 }

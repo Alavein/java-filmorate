@@ -1,30 +1,25 @@
 package ru.yandex.practicum.filmorate.model;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Positive;
 import javax.validation.constraints.Size;
 import java.time.LocalDate;
-import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * Film.
  */
 
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-
+@Data
+@Builder
 public class Film {
 
-    private Integer id;
+    private Long id;
     @NotBlank(message = "Ошибка. Название фильма не указано.")
     private String name;
     @NotNull
@@ -34,5 +29,21 @@ public class Film {
     private LocalDate releaseDate;
     @Positive(message = "Ошибка. Продолжительность фильма должна быть положительной (более 1 секунды).")
     private Integer duration;
-    private Set<Integer> usersLikes = new HashSet<>();
+    private final Set<Long> usersLikes = new TreeSet<>();
+    private Mpa mpa;
+    private Set<Genre> genres;
+
+    public Set<Long> getUsersLikes() {
+        return usersLikes;
+    }
+
+    public Map<String, Object> filmToMap(Film film) {
+        return Map.of(
+                "name", film.getName(),
+                "description", film.getDescription(),
+                "release_date", film.getReleaseDate(),
+                "duration", film.getDuration(),
+                "id_mpa", mpa.getId()
+        );
+    }
 }

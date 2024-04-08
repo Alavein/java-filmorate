@@ -1,22 +1,24 @@
-package ru.yandex.practicum.filmorate.storage.film;
+package ru.yandex.practicum.filmorate.service;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
-import ru.yandex.practicum.filmorate.exceptions.DataNotFoundException;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 
 import java.time.LocalDate;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 
-@Component
 @Slf4j
-public class InMemoryFilmStorage implements FilmStorage {
+@Service
+public class FilmServiceImpl implements FilmService {
 
-    private final Map<Integer, Film> films = new HashMap<>();
-    private int generatorFilmId = 0;
+    private final FilmStorage filmStorage;
+
+    public FilmServiceImpl(@Qualifier("filmDbStorage") FilmStorage filmStorage) {
+        this.filmStorage = filmStorage;
+    }
 
     private void filmValidation(Film film) {
         if (film.getReleaseDate() == null ||
@@ -42,43 +44,37 @@ public class InMemoryFilmStorage implements FilmStorage {
     @Override
     public Film createFilm(Film film) {
         filmValidation(film);
-        log.info("Добавляем фильм: {}", film);
-        film.setId(generateFilmId());
-        films.put(film.getId(), film);
-        log.info("Фильм успешно добавлен: {}", film);
-        return film;
+        return filmStorage.createFilm(film);
     }
 
     @Override
     public Film updateFilm(Film film) {
         filmValidation(film);
-        log.info("Обновляем данные фильма: {}", film);
-        Integer id = film.getId();
-        if (!films.containsKey(id)) {
-            log.info("Ошибка. Фильм не найден: {}", film);
-            throw new DataNotFoundException("Ошибка. Фильм не найден");
-        }
-        films.put(id, film);
-        log.info("Данные о фильме успешно обновлены: {}", film);
-        return film;
+        return filmStorage.updateFilm(film);
     }
 
     @Override
-    public Collection<Film> getAllFilms() {
-        return films.values();
+    public List<Film> getAllFilms() {
+        return filmStorage.getAllFilms();
     }
 
     @Override
-    public Film getFilmById(int id) {
-        Film film = films.get(id);
-        if (film == null) {
-            throw new DataNotFoundException("Ошибка. Фильм не найден.");
-        }
-        log.info("Фильм с id:" + id + "успешно найден.");
-        return film;
+    public Film getFilmById(Long id) {
+        return filmStorage.getFilmById(id);
     }
 
-    private int generateFilmId() {
-        return ++generatorFilmId;
+    @Override
+    public void addFilmLike(Long id, Long userId) {
+        filmStorage.addFilmLike(id, userId);
+    }
+
+    @Override
+    public void removeFilmLike(Long id, Long userId) {
+        filmStorage.removeFilmLike(id, userId);
+    }
+
+    @Override
+    public List<Film> getPopular(Long count) {
+        return filmStorage.getPopular(count);
     }
 }
