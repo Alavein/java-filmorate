@@ -52,7 +52,7 @@ public class FilmDbStorage implements FilmStorage {
         film.setId(id);
         if (!isEmpty(film.getGenres())) {
             for (Genre g : film.getGenres()) {
-                if ((g.getId() > 5) || (g.getId() <= 0)) {
+                if ((g.getId() > 6) || (g.getId() <= 0)) {
                     throw new ValidationException("id жанра не прошел валидацию");
                 }
                 jdbcTemplate.update("INSERT INTO genres_films (id_films, id_genres) "
