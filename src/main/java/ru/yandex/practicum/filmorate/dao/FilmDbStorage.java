@@ -45,19 +45,15 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public Film createFilm(Film film) {
-        validate(film);
         SimpleJdbcInsert insert = new SimpleJdbcInsert(jdbcTemplate)
                 .withTableName("films")
                 .usingGeneratedKeyColumns("id");
         Long id = insert.executeAndReturnKey(film.filmToMap(film)).longValue();
         film.setId(id);
-        if (!isEmpty(film.getGenres())) {
+        if (film.getGenres().isEmpty()) {
             for (Genre g : film.getGenres()) {
-                if ((g.getId() < 5) || (g.getId() >= 0)) {
-                    jdbcTemplate.update("INSERT INTO genres_films (id_films, id_genres) "
-                            + "VALUES (?, ?)", id, g.getId());
-                } else
-                    throw new ValidationException("id жанра не может быть меньше 0 и больше 5");
+                jdbcTemplate.update("INSERT INTO genres_films (id_films, id_genres) " +
+                        "VALUES (?, ?)", id, g.getId());
             }
         }
         return film;
