@@ -8,6 +8,7 @@ import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.stereotype.Component;
 import org.yaml.snakeyaml.constructor.DuplicateKeyException;
 import ru.yandex.practicum.filmorate.exceptions.DataNotFoundException;
+import ru.yandex.practicum.filmorate.exceptions.DatabaseException;
 import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
@@ -45,15 +46,18 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public Film createFilm(Film film) {
+        validate(film);
         SimpleJdbcInsert insert = new SimpleJdbcInsert(jdbcTemplate)
                 .withTableName("films")
                 .usingGeneratedKeyColumns("id");
         Long id = insert.executeAndReturnKey(film.filmToMap(film)).longValue();
         film.setId(id);
-        if (film.getGenres().isEmpty()) {
+        if (!isEmpty(film.getGenres())) {
             for (Genre g : film.getGenres()) {
-                jdbcTemplate.update("INSERT INTO genres_films (id_films, id_genres) " +
-                        "VALUES (?, ?)", id, g.getId());
+                if ((g.getId() < 5) || (g.getId() >= 0)) {
+                    jdbcTemplate.update("INSERT INTO genres_films (id_films, id_genres) "
+                            + "VALUES (?, ?)", id, g.getId());
+                } else throw new DatabaseException("id жанра не может быть меньше 0 и больше 5");
             }
         }
         return film;
